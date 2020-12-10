@@ -74,10 +74,12 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
     currentKey = useSnapshot ? paintKey : imageKey;
     random = Random();
 
-    imageAnimationController = AnimationController(
-        vsync: this, duration: Duration(milliseconds: 5000));
+    imageAnimationController =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 500));
     imageAnimationController.addListener(() {
-      print(imageAnimationController.value);
+      if (imageAnimationController.isCompleted) {
+        imageAnimationController.repeat();
+      }
     });
   }
 
@@ -112,119 +114,29 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
                       child: GestureDetector(
                         onLongPress: () {
                           imageAnimationController.forward();
-
-                          RenderBox box =
-                              imageKey.currentContext.findRenderObject();
-                          Offset imagePosition = box.localToGlobal(Offset.zero);
-                          double imagePositionOffsetX = imagePosition.dx;
-                          double imagePositionOffsetY = imagePosition.dy;
-
-                          double imageCenterPositionX =
-                              imagePositionOffsetX + (imageSize / 2);
-                          double imageCenterPositionY =
-                              imagePositionOffsetY + (imageSize / 2);
-
-                          final List<Color> colors = List();
-
-                          for (int i = 0; i < noOfParticles; i++) {
-                            if (i < 21) {
-                              getPixel(
-                                      imagePosition,
-                                      Offset(imagePositionOffsetX + (i * 0.7),
-                                          imagePositionOffsetY - 60),
-                                      box.size.width)
-                                  .then((value) {
-                                colors.add(value);
-                              });
-                            } else if (i >= 21 && i < 42) {
-                              getPixel(
-                                      imagePosition,
-                                      Offset(imagePositionOffsetX + (1 * 0.7),
-                                          imagePositionOffsetY - 52),
-                                      box.size.width)
-                                  .then((value) {
-                                colors.add(value);
-                              });
-                            } else {
-                              getPixel(
-                                      imagePosition,
-                                      Offset(imagePositionOffsetX + (i * 0.7),
-                                          imagePositionOffsetY - 68),
-                                      box.size.width)
-                                  .then((value) {
-                                colors.add(value);
-                              });
-                            }
-                          }
-
-                          Future.delayed(Duration(milliseconds: 5000), () {
-                            for (int i = 0; i < noOfParticles; i++) {
-                              if (i < 21) {
-                                particles.add(Particle(
-                                    id: i,
-                                    screenSize: widget.screenSize,
-                                    colors: colors[i].withOpacity(1.0),
-                                    offsetX: (imageCenterPositionX -
-                                            imagePositionOffsetX +
-                                            (i * 0.7)) *
-                                        0.1,
-                                    offsetY: (imageCenterPositionY -
-                                            (imagePositionOffsetY - 60)) *
-                                        0.1,
-                                    newOffsetX:
-                                        imagePositionOffsetX + (i * 0.7),
-                                    newOffsetY: imagePositionOffsetY - 60));
-                              } else if (i >= 21 && i < 42) {
-                                particles.add(Particle(
-                                    id: i,
-                                    screenSize: widget.screenSize,
-                                    colors: colors[i].withOpacity(1.0),
-                                    offsetX: (imageCenterPositionX -
-                                            imagePositionOffsetX +
-                                            (i * 0.5)) *
-                                        0.1,
-                                    offsetY: (imageCenterPositionY -
-                                            (imagePositionOffsetY - 52)) *
-                                        0.1,
-                                    newOffsetX:
-                                        imagePositionOffsetX + (i * 0.7),
-                                    newOffsetY: imagePositionOffsetY - 52));
-                              } else {
-                                particles.add(Particle(
-                                    id: i,
-                                    screenSize: widget.screenSize,
-                                    colors: colors[i].withOpacity(1.0),
-                                    offsetX: (imageCenterPositionX -
-                                            imagePositionOffsetX +
-                                            (i * 0.9)) *
-                                        0.1,
-                                    offsetY: (imageCenterPositionY -
-                                            (imagePositionOffsetY - 68)) *
-                                        0.1,
-                                    newOffsetX:
-                                        imagePositionOffsetX + (i * 0.7),
-                                    newOffsetY: imagePositionOffsetY - 68));
-                              }
-                            }
-                            setState(() {
-                              isImage = false;
-                            });
-                          });
+                          doParticleAnimation();
                         },
                         child: Container(
-                          alignment: FractionalOffset(
-                              (widget.imagePosFromLeft /
-                                  widget.screenSize.width),
-                              (widget.imagePosFromTop /
-                                  widget.screenSize.height)),
-                          child: Transform(
-                            transform: Matrix4.translation(_shakeImage()),
-                            child: Image.asset(widget.imagePath,
-                                key: imageKey,
-                                width: imageSize,
-                                height: imageSize),
-                          ),
-                        ),
+                            alignment: FractionalOffset(
+                                (widget.imagePosFromLeft /
+                                    widget.screenSize.width),
+                                (widget.imagePosFromTop /
+                                    widget.screenSize.height)),
+                            child: AnimatedBuilder(
+                              builder: (BuildContext context, Widget child) {
+                                return Transform.translate(
+                                  offset: Offset(
+                                      20 *
+                                          shake(imageAnimationController.value),
+                                      0),
+                                  child: Image.asset(widget.imagePath,
+                                      key: imageKey,
+                                      width: imageSize,
+                                      height: imageSize),
+                                );
+                              },
+                              animation: imageAnimationController,
+                            )),
                       ),
                     )
                   ],
@@ -241,6 +153,9 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
             ),
     );
   }
+
+  double shake(double value) =>
+      2 * (0.5 - (0.5 - Curves.linear.transform(value)).abs());
 
   Vector3 _shakeImage() {
     double x = sin((imageAnimationController.value) * pi * 20.0) * 8;
@@ -292,6 +207,102 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
   void setImageBytes(ByteData imageBytes) {
     List<int> values = imageBytes.buffer.asUint8List();
     photo = img.decodeImage(values);
+  }
+
+  Future<List<Color>> collectColors(RenderBox box) async {
+    Offset imagePosition = box.localToGlobal(Offset.zero);
+    double imagePositionOffsetX = imagePosition.dx;
+    double imagePositionOffsetY = imagePosition.dy;
+
+    List<Color> colors = List();
+
+    for (int i = 0; i < noOfParticles; i++) {
+      if (i < 21) {
+        await getPixel(
+                imagePosition,
+                Offset(imagePositionOffsetX + (i * 0.7),
+                    imagePositionOffsetY - 60),
+                box.size.width)
+            .then((value) {
+          colors.add(value);
+        });
+      } else if (i >= 21 && i < 42) {
+        await getPixel(
+                imagePosition,
+                Offset(imagePositionOffsetX + (1 * 0.7),
+                    imagePositionOffsetY - 52),
+                box.size.width)
+            .then((value) {
+          colors.add(value);
+        });
+      } else {
+        await getPixel(
+                imagePosition,
+                Offset(imagePositionOffsetX + (i * 0.7),
+                    imagePositionOffsetY - 68),
+                box.size.width)
+            .then((value) {
+          colors.add(value);
+        });
+      }
+    }
+
+    return colors;
+  }
+
+  Future doParticleAnimation() async {
+    RenderBox box = imageKey.currentContext.findRenderObject();
+
+    List<Color> colors = await collectColors(box);
+
+    Future.delayed(Duration(milliseconds: 4000)).then((value) {
+      addParticles(box, colors);
+    });
+  }
+
+  void addParticles(RenderBox box, List<Color> colors) {
+    Offset imagePosition = box.localToGlobal(Offset.zero);
+    double imagePositionOffsetX = imagePosition.dx;
+    double imagePositionOffsetY = imagePosition.dy;
+
+    double imageCenterPositionX = imagePositionOffsetX + (imageSize / 2);
+    double imageCenterPositionY = imagePositionOffsetY + (imageSize / 2);
+    for (int i = 0; i < noOfParticles; i++) {
+      if (i < 21) {
+        particles.add(Particle(
+            id: i,
+            screenSize: widget.screenSize,
+            colors: colors[i].withOpacity(1.0),
+            offsetX:
+                (imageCenterPositionX - imagePositionOffsetX + (i * 0.7)) * 0.1,
+            offsetY: (imageCenterPositionY - (imagePositionOffsetY - 60)) * 0.1,
+            newOffsetX: imagePositionOffsetX + (i * 0.7),
+            newOffsetY: imagePositionOffsetY - 60));
+      } else if (i >= 21 && i < 42) {
+        particles.add(Particle(
+            id: i,
+            screenSize: widget.screenSize,
+            colors: colors[i].withOpacity(1.0),
+            offsetX:
+                (imageCenterPositionX - imagePositionOffsetX + (i * 0.5)) * 0.1,
+            offsetY: (imageCenterPositionY - (imagePositionOffsetY - 52)) * 0.1,
+            newOffsetX: imagePositionOffsetX + (i * 0.7),
+            newOffsetY: imagePositionOffsetY - 52));
+      } else {
+        particles.add(Particle(
+            id: i,
+            screenSize: widget.screenSize,
+            colors: colors[i].withOpacity(1.0),
+            offsetX:
+                (imageCenterPositionX - imagePositionOffsetX + (i * 0.9)) * 0.1,
+            offsetY: (imageCenterPositionY - (imagePositionOffsetY - 68)) * 0.1,
+            newOffsetX: imagePositionOffsetX + (i * 0.7),
+            newOffsetY: imagePositionOffsetY - 68));
+      }
+    }
+    setState(() {
+      isImage = false;
+    });
   }
 }
 
