@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animation_practice/animation/explode/explode_view.dart';
+import 'package:flutter_animation_practice/animation/explode/learn/explode_view.dart';
 
 void main() {
   runApp(MyApp());
