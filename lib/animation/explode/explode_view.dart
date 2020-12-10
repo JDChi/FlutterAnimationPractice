@@ -157,12 +157,6 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
   double shake(double value) =>
       2 * (0.5 - (0.5 - Curves.linear.transform(value)).abs());
 
-  Vector3 _shakeImage() {
-    double x = sin((imageAnimationController.value) * pi * 20.0) * 8;
-    print("here " + x.toString());
-    return Vector3(x, 0.0, 0.0);
-  }
-
   Future<void> loadImageBundleBytes() async {
     ByteData imageBytes = await rootBundle.load(widget.imagePath);
     setImageBytes(imageBytes);
