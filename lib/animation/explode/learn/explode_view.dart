@@ -302,9 +302,6 @@ class Particle extends _ExplodeViewBodyState {
   double newOffsetX = 0.0, newOffsetY = 0.0;
 
   Offset position;
-  Paint singleParticle;
-
-  static final randomValue = Random();
   AnimationController animationController;
 
   Animation translateXAnimation, negateTranslateXAnimation;
