@@ -7,8 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:image/image.dart' as img;
 
-const explosionDuration = Duration(milliseconds: 1500);
-const shakingDuration = Duration(milliseconds: 3000);
 const noOfParticles = 64;
 
 class ExplodeView extends StatelessWidget {
@@ -89,13 +87,12 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
     super.dispose();
   }
 
-  Future<Color> getPixel(
-      Offset globalPosition, Offset position, double size) async {
+  Future<Color> getPixel(Offset position, double size) async {
     if (photo == null) {
       await (useSnapshot ? loadSnapshotBytes() : loadImageBundleBytes());
     }
 
-    Color newColor = calculatePixel(globalPosition, position, size);
+    Color newColor = calculatePixel(position, size);
     return newColor;
   }
 
@@ -171,7 +168,7 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
     capture.dispose();
   }
 
-  Color calculatePixel(Offset globalPosition, Offset position, double size) {
+  Color calculatePixel(Offset position, double size) {
     double px = position.dx;
     double py = position.dy;
 
@@ -213,7 +210,6 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
     for (int i = 0; i < noOfParticles; i++) {
       if (i < 21) {
         await getPixel(
-                imagePosition,
                 Offset(imagePositionOffsetX + (i * 0.7),
                     imagePositionOffsetY - 60),
                 box.size.width)
@@ -222,7 +218,6 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
         });
       } else if (i >= 21 && i < 42) {
         await getPixel(
-                imagePosition,
                 Offset(imagePositionOffsetX + (1 * 0.7),
                     imagePositionOffsetY - 52),
                 box.size.width)
@@ -231,7 +226,6 @@ class _ExplodeViewBodyState extends State<ExplodeViewBody>
         });
       } else {
         await getPixel(
-                imagePosition,
                 Offset(imagePositionOffsetX + (i * 0.7),
                     imagePositionOffsetY - 68),
                 box.size.width)
